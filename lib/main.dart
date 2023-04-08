@@ -52,10 +52,19 @@ class Todo {
 //Provider
 class TodoProvider extends ChangeNotifier {
   final List<Todo> _todoList = [];
-  UnmodifiableListView<Todo> get todoList => UnmodifiableListView(_todoList);
+  int screenIndex = 0;
+  UnmodifiableListView<Todo> get todoList => UnmodifiableListView(
+      _todoList.where((todo) => todo.isCompleted == false).toList());
+  UnmodifiableListView<Todo> get completedTodoList => UnmodifiableListView(
+      _todoList.where((todo) => todo.isCompleted == true).toList());
 
   void add(Todo todo) {
     _todoList.add(todo);
+    notifyListeners();
+  }
+
+  void setScreenIndex(int index){
+    screenIndex = index;
     notifyListeners();
   }
 
@@ -77,12 +86,14 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = Provider.of<TodoProvider>(context);
+    final screenIndex = provider.screenIndex;
     return Scaffold(
       backgroundColor: const Color.fromARGB(255, 232, 230, 230),
       appBar: AppBar(
         title: const Text('Todo App'),
       ),
-      body: const TodoListWidget(),
+      body: TodoListWidget(index: screenIndex),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.black,
         onPressed: () {
@@ -94,6 +105,10 @@ class HomePage extends StatelessWidget {
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: BottomNavigationBar(
+        currentIndex: screenIndex,
+        onTap: (index) => {
+          context.read<TodoProvider>().setScreenIndex(index),
+        },
         backgroundColor: Theme.of(context).primaryColor,
         selectedItemColor: Colors.white,
         unselectedItemColor: const Color.fromARGB(173, 255, 255, 255),
@@ -210,12 +225,14 @@ class _AddTodoDialogState extends State<AddTodoDialog> {
 //Todo Widget
 
 class TodoListWidget extends StatelessWidget {
-  const TodoListWidget({super.key});
+  const TodoListWidget({super.key, required this.index});
+
+  final int index;
 
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TodoProvider>(context);
-    final todoList = provider.todoList;
+    final todoList = index == 0 ? provider.todoList : provider.completedTodoList;
 
     return todoList.isEmpty
         ? const Center(
@@ -272,7 +289,9 @@ class TodoCardWidget extends StatelessWidget {
           motion: const ScrollMotion(),
           children: [
             SlidableAction(
-              onPressed: (context) {},
+              onPressed: (context) {
+                context.read<TodoProvider>().remove(todo);
+              },
               backgroundColor: Colors.red,
               foregroundColor: Colors.white,
               borderRadius: const BorderRadius.only(
