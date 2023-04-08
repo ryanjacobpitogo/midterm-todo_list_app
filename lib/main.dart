@@ -17,13 +17,12 @@ void main() {
         ),
         debugShowCheckedModeBanner: false,
         home: const HomePage(),
-        routes: {
-          '/newTodo': (context) => const Material(),
-        },
       ),
     ),
   );
 }
+
+
 
 //Model
 class Todo {
@@ -63,7 +62,7 @@ class TodoProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setScreenIndex(int index){
+  void setScreenIndex(int index) {
     screenIndex = index;
     notifyListeners();
   }
@@ -74,56 +73,15 @@ class TodoProvider extends ChangeNotifier {
     return todo.isCompleted;
   }
 
+  void update(Todo todo, String label, String desc) {
+    todo.label = label;
+    todo.desc = desc;
+    notifyListeners();
+  }
+
   void remove(Todo todo) {
     _todoList.remove(todo);
     notifyListeners();
-  }
-}
-
-//First Screen
-class HomePage extends StatelessWidget {
-  const HomePage({Key? key}) : super(key: key);
-
-  @override
-  Widget build(BuildContext context) {
-    final provider = Provider.of<TodoProvider>(context);
-    final screenIndex = provider.screenIndex;
-    return Scaffold(
-      backgroundColor: const Color.fromARGB(255, 232, 230, 230),
-      appBar: AppBar(
-        title: const Text('Todo App'),
-      ),
-      body: TodoListWidget(index: screenIndex),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.black,
-        onPressed: () {
-          displayAddDialog(context);
-        },
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: const Icon(Icons.add),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: screenIndex,
-        onTap: (index) => {
-          context.read<TodoProvider>().setScreenIndex(index),
-        },
-        backgroundColor: Theme.of(context).primaryColor,
-        selectedItemColor: Colors.white,
-        unselectedItemColor: const Color.fromARGB(173, 255, 255, 255),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.fact_check_outlined),
-            label: 'Todos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.done, size: 28),
-            label: 'Completed',
-          ),
-        ],
-      ),
-    );
   }
 }
 
@@ -232,7 +190,8 @@ class TodoListWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = Provider.of<TodoProvider>(context);
-    final todoList = index == 0 ? provider.todoList : provider.completedTodoList;
+    final todoList =
+        index == 0 ? provider.todoList : provider.completedTodoList;
 
     return todoList.isEmpty
         ? const Center(
@@ -272,7 +231,13 @@ class TodoCardWidget extends StatelessWidget {
           motion: const ScrollMotion(),
           children: [
             SlidableAction(
-              onPressed: (context) {},
+              onPressed: (context) {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => EditTodoPage(todo: todo),
+                  ),
+                );
+              },
               backgroundColor: Colors.green,
               foregroundColor: Colors.white,
               borderRadius: const BorderRadius.only(
@@ -303,49 +268,62 @@ class TodoCardWidget extends StatelessWidget {
             ),
           ],
         ),
-        child: Container(
-          constraints: const BoxConstraints(minHeight: 100),
-          padding: const EdgeInsets.only(top: 10, bottom: 10, right: 20),
-          decoration: const BoxDecoration(color: Colors.white),
-          child: Row(
-            children: [
-              Expanded(
-                flex: 2,
-                child: Checkbox(
-                  value: todo.isCompleted,
-                  onChanged: (value) {
-                    context.read<TodoProvider>().toggleCompleted(todo);
-                  },
-                ),
-              ),
-              Expanded(
-                flex: 7,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        todo.label,
-                        style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 20,
-                            color: Theme.of(context).primaryColor),
-                      ),
-                      todo.desc.isNotEmpty
-                          ? Text(
-                              todo.desc,
-                              style: const TextStyle(
-                                fontSize: 18,
-                                height: 1.3,
-                              ),
-                            )
-                          : const SizedBox()
-                    ],
+        child: GestureDetector(
+          onTap: () => Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => EditTodoPage(todo: todo),
+            ),
+          ),
+          child: Container(
+            constraints: const BoxConstraints(minHeight: 100),
+            padding: const EdgeInsets.only(top: 10, bottom: 10, right: 20),
+            decoration: const BoxDecoration(color: Colors.white),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: Checkbox(
+                    value: todo.isCompleted,
+                    onChanged: (value) {
+                      context.read<TodoProvider>().toggleCompleted(todo);
+
+                      final snackBar = SnackBar(
+                        content: Text(todo.isCompleted ? 'Task completed' : 'Task marked incomplete'),
+                        backgroundColor: (Colors.black),
+                      );
+                      ScaffoldMessenger.of(context).showSnackBar(snackBar);
+                    },
                   ),
                 ),
-              )
-            ],
+                Expanded(
+                  flex: 7,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          todo.label,
+                          style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 20,
+                              color: Theme.of(context).primaryColor),
+                        ),
+                        todo.desc.isNotEmpty
+                            ? Text(
+                                todo.desc,
+                                style: const TextStyle(
+                                  fontSize: 18,
+                                  height: 1.3,
+                                ),
+                              )
+                            : const SizedBox()
+                      ],
+                    ),
+                  ),
+                )
+              ],
+            ),
           ),
         ),
       ),
@@ -353,4 +331,148 @@ class TodoCardWidget extends StatelessWidget {
   }
 }
 
+//First Screen
+class HomePage extends StatelessWidget {
+  const HomePage({Key? key}) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = Provider.of<TodoProvider>(context);
+    final screenIndex = provider.screenIndex;
+    String appBarTitle = screenIndex == 0 ? 'Todo App' : 'Todo App > Completed';
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 232, 230, 230),
+      appBar: AppBar(
+        title: Text(appBarTitle),
+      ),
+      body: TodoListWidget(index: screenIndex),
+      floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.black,
+        onPressed: () {
+          displayAddDialog(context);
+        },
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: const Icon(Icons.add),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: screenIndex,
+        onTap: (index) => {
+          context.read<TodoProvider>().setScreenIndex(index),
+        },
+        backgroundColor: Theme.of(context).primaryColor,
+        selectedItemColor: Colors.white,
+        unselectedItemColor: const Color.fromARGB(173, 255, 255, 255),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.fact_check_outlined),
+            label: 'Todos',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.done, size: 28),
+            label: 'Completed',
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 //Second Screen
+class EditTodoPage extends StatefulWidget {
+  final Todo todo;
+
+  const EditTodoPage({super.key, required this.todo});
+
+  @override
+  State<EditTodoPage> createState() => _EditTodoPageState();
+}
+
+class _EditTodoPageState extends State<EditTodoPage> {
+  late final TextEditingController _labelController;
+  late final TextEditingController _descController;
+
+  @override
+  void initState() {
+    _labelController = TextEditingController();
+    _descController = TextEditingController();
+    super.initState();
+  }
+
+  @override
+  void dispose() {
+    _labelController = TextEditingController();
+    _descController = TextEditingController();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color.fromARGB(255, 232, 230, 230),
+      appBar: AppBar(
+        title: const Text('Edit Todo'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+        actions: <Widget>[
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () {
+              context.read<TodoProvider>().remove(widget.todo);
+              Navigator.of(context).pop();
+            },
+          ),
+        ],
+      ),
+      body: Container(
+        margin: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            TextField(
+              maxLines: 1,
+              controller: _labelController,
+              decoration: const InputDecoration(
+                border: UnderlineInputBorder(),
+                labelText: 'Title',
+              ),
+            ),
+            TextField(
+              maxLines: 3,
+              controller: _descController,
+              decoration: const InputDecoration(
+                border: UnderlineInputBorder(),
+                labelText: 'Description',
+              ),
+            ),
+            const SizedBox(height: 30),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.black,
+                ),
+                onPressed: () {
+                  final labelText = _labelController.text;
+                  final descText = _descController.text;
+      
+                  if (labelText.isNotEmpty) {
+                    context
+                        .read<TodoProvider>()
+                        .update(widget.todo, labelText, descText);
+                    Navigator.of(context).pop();
+                  }
+                },
+                child: const Text('Save'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
